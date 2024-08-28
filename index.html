@@ -258,7 +258,6 @@
                             currentSessionCount++;
                             updateSessionInfo();
                             updateStatus();
-                            alert(currentSessionCount % longBreakInterval === 0 ? "Long break over, time to work!" : "Break over, time to work!");
                             resetTimes();
                         } else {
                             (currentSessionCount % longBreakInterval === 0 && currentSessionCount !== 1) ? longBreakTime-- : breakTime--;
