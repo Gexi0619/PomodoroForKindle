@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #fff;
+            color: #000;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        h1 {
+            font-size: 4rem;
+            margin-bottom: 24px;
+        }
+        #timer {
+            font-size: 10rem;
+            margin-bottom: 20px;
+        }
+        #status {
+            font-size: 3rem;
+            margin-bottom: 30px;
+            color: #000;
+        }
+        button, input {
+            font-size: 2rem;
+            padding: 15px 30px;
+            margin: 10px;
+            border: 2px solid #000;
+            background-color: #fff;
+            color: #000;
+            cursor: pointer;
+        }
+        button:disabled {
+            border: 2px solid #999;
+            background-color: #fff;
+            color: #999;
+            cursor: not-allowed;
+        }
+        button:active {
+            background-color: #000;
+            color: #fff;
+        }
+        input {
+            width: 100px;
+            text-align: center;
+            background-color: #fff;
+            color: #000;
+            border: 2px solid #000;
+        }
+        #settings {
+            display: none;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: left;
+        }
+        #settings table {
+            width: 85%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        #settings td {
+            padding: 10px;
+        }
+        #settings input {
+            width: 100%;
+        }
+        #settings .button-container {
+            display: flex;
+            justify-content: space-between;
+        }
+        #session-info {
+            font-size: 3rem;
+            margin: 30px 0;
+        }
+        #easter-egg {
+            display: none;
+            font-size: 3rem;
+            color: #000;
+            margin-top: 30px;
+        }
+        .full-width-button {
+            width: 50%;
+            max-width: 250px;
+        }
+        #timer-screen button {
+            display: block;
+            width: 100%;
+            max-width: 250px;
+            margin: 10px auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pomodoro Timer</h1>
+    <!-- Timer Screen -->
+    <div id="timer-screen">
+        <div id="status">Status: Pomodoro</div>
+        <div id="timer">25:00</div>
+        <div id="session-info">Session: 1/8</div>
+        <button id="start-pause" class="full-width-button">Start</button>
+        <button id="skip" class="full-width-button" disabled>Skip</button>
+        <button id="reset" class="full-width-button" disabled>Reset</button>
+        <button id="open-settings" class="full-width-button">Settings</button>
+        <div id="easter-egg">🎉 Congratulations! You reached your goal! 🎉</div>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="settings">
+        <table>
+            <tr>
+                <td><label for="work-time-input">Work Time:</label></td>
+                <td><input type="number" id="work-time-input" value="25" min="1" /> minutes</td>
+            </tr>
+            <tr>
+                <td><label for="break-time-input">Break Time:</label></td>
+                <td><input type="number" id="break-time-input" value="5" min="1" /> minutes</td>
+            </tr>
+            <tr>
+                <td><label for="long-break-time-input">Long Break Time:</label></td>
+                <td><input type="number" id="long-break-time-input" value="15" min="1" /> minutes</td>
+            </tr>
+            <tr>
+                <td><label for="long-break-interval-input">Long Break Interval:</label></td>
+                <td><input type="number" id="long-break-interval-input" value="4" min="1" /> sessions</td>
+            </tr>
+            <tr>
+                <td><label for="goal-sessions-input">Goal Sessions:</label></td>
+                <td><input type="number" id="goal-sessions-input" value="8" min="1" /> sessions</td>
+            </tr>
+        </table>
+        <div class="button-container">
+            <button id="apply-settings" class="full-width-button">Apply</button>
+            <button id="back-to-timer" class="full-width-button">Back</button>
+        </div>
+    </div>
+    <script>
+        // Retrieve settings from localStorage or use defaults
+        function loadSettings() {
+            const savedWorkTime = localStorage.getItem('workTime');
+            const savedBreakTime = localStorage.getItem('breakTime');
+            const savedLongBreakTime = localStorage.getItem('longBreakTime');
+            const savedLongBreakInterval = localStorage.getItem('longBreakInterval');
+            const savedGoalSessions = localStorage.getItem('goalSessions');
+            
+            if (savedWorkTime) workTime = parseInt(savedWorkTime) * 60;
+            if (savedBreakTime) breakTime = parseInt(savedBreakTime) * 60;
+            if (savedLongBreakTime) longBreakTime = parseInt(savedLongBreakTime) * 60;
+            if (savedLongBreakInterval) longBreakInterval = parseInt(savedLongBreakInterval);
+            if (savedGoalSessions) goalSessions = parseInt(savedGoalSessions);
+
+            workTimeInput.value = workTime / 60;
+            breakTimeInput.value = breakTime / 60;
+            longBreakTimeInput.value = longBreakTime / 60;
+            longBreakIntervalInput.value = longBreakInterval;
+            goalSessionsInput.value = goalSessions;
+        }
+
+        // Save settings to localStorage
+        function saveSettings() {
+            localStorage.setItem('workTime', parseInt(workTimeInput.value));
+            localStorage.setItem('breakTime', parseInt(breakTimeInput.value));
+            localStorage.setItem('longBreakTime', parseInt(longBreakTimeInput.value));
+            localStorage.setItem('longBreakInterval', parseInt(longBreakIntervalInput.value));
+            localStorage.setItem('goalSessions', parseInt(goalSessionsInput.value));
+        }
+
+        // Default settings
+        let workTime = 25 * 60;  // 25 minutes in seconds
+        let breakTime = 5 * 60;   // 5 minutes in seconds
+        let longBreakTime = 15 * 60;  // 15 minutes in seconds
+        let longBreakInterval = 4;  // Every 4 work sessions
+        let goalSessions = 8;  // Default goal sessions
+        let currentSessionCount = 1;
+        let completedSessions = 0;
+        let isWorking = true;
+        let timer;
+        let isPaused = true;
+
+        const timerElement = document.getElementById('timer');
+        const sessionInfoElement = document.getElementById('session-info');
+        const statusElement = document.getElementById('status'); //
+        const startPauseButton = document.getElementById('start-pause');
+        const skipButton = document.getElementById('skip');
+        const resetButton = document.getElementById('reset');
+        const openSettingsButton = document.getElementById('open-settings');
+        const settingsDiv = document.getElementById('settings');
+        const timerScreenDiv = document.getElementById('timer-screen');
+        const applySettingsButton = document.getElementById('apply-settings');
+        const backToTimerButton = document.getElementById('back-to-timer');
+        const workTimeInput = document.getElementById('work-time-input');
+        const breakTimeInput = document.getElementById('break-time-input');
+        const longBreakTimeInput = document.getElementById('long-break-time-input');
+        const longBreakIntervalInput = document.getElementById('long-break-interval-input');
+        const goalSessionsInput = document.getElementById('goal-sessions-input');
+        const easterEgg = document.getElementById('easter-egg');
+
+        function updateTimer() {
+            const timeLeft = isWorking ? workTime : (currentSessionCount % longBreakInterval === 0 && currentSessionCount !== 1) ? longBreakTime : breakTime;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerElement.textContent = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+
+        function updateSessionInfo() {
+            sessionInfoElement.textContent = `Session: ${currentSessionCount}/${goalSessions}`;
+            if (completedSessions >= goalSessions) {
+                easterEgg.style.display = 'block';
+            }
+        }
+
+        function updateStatus() {
+            if (isWorking) {
+                statusElement.textContent = 'Status: Pomodoro';
+                statusElement.style.color = '#000';
+            } else {
+                if (currentSessionCount % longBreakInterval === 0 && currentSessionCount !== 1) {
+                    statusElement.textContent = 'Long Break';
+                    statusElement.style.color = '#000';
+                } else {
+                    statusElement.textContent = 'Break';
+                    statusElement.style.color = '#000';
+                }
+            }
+        }
+
+        function startTimer() {
+            if (isPaused) {
+                isPaused = false;
+                startPauseButton.textContent = 'Pause';
+                skipButton.disabled = false;
+                resetButton.disabled = false;
+
+                timer = setInterval(() => {
+                    if (isWorking) {
+                        workTime--;
+                        if (workTime <= 0) {
+                            isWorking = false;
+                            completedSessions++;
+                            updateSessionInfo();
+                            updateStatus();
+                            alert("Time for a break!");
+                        }
+                    } else {
+                        const timeLeft = (currentSessionCount % longBreakInterval === 0 && currentSessionCount !== 1) ? longBreakTime : breakTime;
+                        if (timeLeft <= 0) {
+                            isWorking = true;
+                            currentSessionCount++;
+                            updateSessionInfo();
+                            updateStatus();
+                            alert(currentSessionCount % longBreakInterval === 0 ? "Long break over, time to work!" : "Break over, time to work!");
+                            resetTimes();
+                        } else {
+                            (currentSessionCount % longBreakInterval === 0 && currentSessionCount !== 1) ? longBreakTime-- : breakTime--;
+                        }
+                    }
+                    updateTimer();
+                }, 1000);
+            } else {
+                pauseTimer();
+            }
+        }
+
+        function pauseTimer() {
+            clearInterval(timer);
+            isPaused = true;
+            startPauseButton.textContent = 'Start';
+            skipButton.disabled = true;
+        }
+
+        function resetTimer() {
+            const confirmation = confirm("Are you sure you want to reset the timer? This will clear the current session data.");
+            if (confirmation) {
+                clearInterval(timer);
+                isPaused = true;
+                isWorking = true;
+                workTime = parseInt(workTimeInput.value) * 60;
+                breakTime = parseInt(breakTimeInput.value) * 60;
+                longBreakTime = parseInt(longBreakTimeInput.value) * 60;
+                currentSessionCount = 1;
+                completedSessions = 0;
+                updateSessionInfo();
+                updateStatus();
+                startPauseButton.textContent = 'Start';
+                skipButton.disabled = true;
+                resetButton.disabled = true;
+                updateTimer();
+            }
+        }
+
+        function skipSession() {
+            clearInterval(timer);
+            if (isWorking) {
+                isWorking = false;
+                completedSessions++;
+                updateSessionInfo();
+                updateStatus();
+                alert("Skipping to break time!");
+            } else {
+                isWorking = true;
+                currentSessionCount++;
+                updateSessionInfo();
+                updateStatus();
+                alert(currentSessionCount % longBreakInterval === 0 ? "Skipping to work after long break!" : "Skipping to work time!");
+                resetTimes();
+            }
+            updateTimer();
+            startTimer(); // Automatically start the next session
+        }
+
+        function openSettings() {
+            timerScreenDiv.style.display = 'none';
+            settingsDiv.style.display = 'block';
+        }
+
+        function applySettings() {
+            const newWorkTime = parseInt(workTimeInput.value);
+            const newBreakTime = parseInt(breakTimeInput.value);
+            const newLongBreakTime = parseInt(longBreakTimeInput.value);
+            const newLongBreakInterval = parseInt(longBreakIntervalInput.value);
+            const newGoalSessions = parseInt(goalSessionsInput.value);
+
+            if (isNaN(newWorkTime) || newWorkTime <= 0 || isNaN(newBreakTime) || newBreakTime <= 0 || isNaN(newLongBreakTime) || newLongBreakTime <= 0 || isNaN(newLongBreakInterval) || newLongBreakInterval <= 0 || isNaN(newGoalSessions) || newGoalSessions <= 0) {
+                alert("Please enter valid values!");
+                return;
+            }
+
+            workTime = newWorkTime * 60;
+            breakTime = newBreakTime * 60;
+            longBreakTime = newLongBreakTime * 60;
+            longBreakInterval = newLongBreakInterval;
+            goalSessions = newGoalSessions;
+            saveSettings();
+            resetTimer();
+            backToTimerScreen();
+        }
+
+        function backToTimerScreen() {
+            settingsDiv.style.display = 'none';
+            timerScreenDiv.style.display = 'block';
+        }
+
+        function resetTimes() {
+            // Only resetting the timers based on user input
+            workTime = parseInt(workTimeInput.value) * 60;
+            breakTime = parseInt(breakTimeInput.value) * 60;
+            longBreakTime = parseInt(longBreakTimeInput.value) * 60;
+        }
+
+        // Prevent browser refresh without confirmation
+        window.addEventListener('beforeunload', (event) => {
+            if (!isPaused) {
+                const confirmationMessage = 'You have unsaved changes. Are you sure you want to leave?';
+                event.returnValue = confirmationMessage;
+                return confirmationMessage;
+            }
+        });
+
+        // Initialize settings
+        loadSettings();
+
+        startPauseButton.addEventListener('click', startTimer);
+        resetButton.addEventListener('click', resetTimer);
+        skipButton.addEventListener('click', skipSession);
+        openSettingsButton.addEventListener('click', openSettings);
+        applySettingsButton.addEventListener('click', applySettings);
+        backToTimerButton.addEventListener('click', backToTimerScreen);
+
+        updateTimer();
+        updateSessionInfo();
+        updateStatus();
+    </script>
+</body>
+</html>
+
