@@ -19,7 +19,7 @@
             flex-direction: column;
         }
         h1 {
-            font-size: 4rem;
+            font-size: 3rem;
             margin-bottom: 24px;
         }
         #timer {
@@ -65,7 +65,7 @@
             text-align: left;
         }
         #settings table {
-            width: 85%;
+            width: 80%;
             border-collapse: collapse;
             margin-bottom: 20px;
         }
@@ -102,15 +102,16 @@
     </style>
 </head>
 <body>
-    <h1>Pomodoro Timer</h1>
+
     <!-- Timer Screen -->
+
     <div id="timer-screen">
+        <h1>Pomodoro Timer</h1>
         <div id="status">Status: Pomodoro</div>
         <div id="timer">25:00</div>
         <div id="session-info">Session: 1/8</div>
         <button id="start-pause" class="full-width-button">Start</button>
         <button id="skip" class="full-width-button" disabled>Skip</button>
-        <button id="reset" class="full-width-button" disabled>Reset</button>
         <button id="open-settings" class="full-width-button">Settings</button>
         <div id="easter-egg">🎉 Congratulations! You reached your goal! 🎉</div>
     </div>
@@ -189,10 +190,9 @@
 
         const timerElement = document.getElementById('timer');
         const sessionInfoElement = document.getElementById('session-info');
-        const statusElement = document.getElementById('status'); //
+        const statusElement = document.getElementById('status');
         const startPauseButton = document.getElementById('start-pause');
         const skipButton = document.getElementById('skip');
-        const resetButton = document.getElementById('reset');
         const openSettingsButton = document.getElementById('open-settings');
         const settingsDiv = document.getElementById('settings');
         const timerScreenDiv = document.getElementById('timer-screen');
@@ -206,178 +206,89 @@
         const easterEgg = document.getElementById('easter-egg');
 
         function updateTimer() {
-            const timeLeft = isWorking ? workTime : (currentSessionCount % longBreakInterval === 0 && currentSessionCount !== 1) ? longBreakTime : breakTime;
+            const timeLeft = isWorking ? workTime : (currentSessionCount % longBreakInterval === 0 && currentSessionCount !== 0) ? longBreakTime : breakTime;
             const minutes = Math.floor(timeLeft / 60);
             const seconds = timeLeft % 60;
-            timerElement.textContent = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-        }
-
-        function updateSessionInfo() {
+            timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             sessionInfoElement.textContent = `Session: ${currentSessionCount}/${goalSessions}`;
-            if (completedSessions >= goalSessions) {
-                easterEgg.style.display = 'block';
-            }
+            statusElement.textContent = `Status: ${isWorking ? 'Pomodoro' : (currentSessionCount % longBreakInterval === 0 && currentSessionCount !== 0) ? 'Long Break' : 'Break'}`;
         }
 
-        function updateStatus() {
-            if (isWorking) {
-                statusElement.textContent = 'Status: Pomodoro';
-                statusElement.style.color = '#000';
-            } else {
-                if (currentSessionCount % longBreakInterval === 0 && currentSessionCount !== 1) {
-                    statusElement.textContent = 'Long Break';
-                    statusElement.style.color = '#000';
-                } else {
-                    statusElement.textContent = 'Break';
-                    statusElement.style.color = '#000';
-                }
-            }
-        }
-
-        function startTimer() {
+        function toggleTimer() {
             if (isPaused) {
-                isPaused = false;
-                startPauseButton.textContent = 'Pause';
-                skipButton.disabled = false;
-                resetButton.disabled = false;
-
                 timer = setInterval(() => {
                     if (isWorking) {
                         workTime--;
-                        if (workTime <= 0) {
-                            isWorking = false;
-                            completedSessions++;
-                            updateSessionInfo();
-                            updateStatus();
-                            alert("Time for a break!");
-                        }
+                    } else if (currentSessionCount % longBreakInterval === 0 && currentSessionCount !== 0) {
+                        longBreakTime--;
                     } else {
-                        const timeLeft = (currentSessionCount % longBreakInterval === 0 && currentSessionCount !== 1) ? longBreakTime : breakTime;
-                        if (timeLeft <= 0) {
-                            isWorking = true;
-                            currentSessionCount++;
-                            updateSessionInfo();
-                            updateStatus();
-                            resetTimes();
-                        } else {
-                            (currentSessionCount % longBreakInterval === 0 && currentSessionCount !== 1) ? longBreakTime-- : breakTime--;
-                        }
+                        breakTime--;
+                    }
+                    if (workTime === 0 || breakTime === 0 || longBreakTime === 0) {
+                        completeSession();
                     }
                     updateTimer();
                 }, 1000);
+                startPauseButton.textContent = 'Pause';
+                skipButton.disabled = false;
+                isPaused = false;
             } else {
-                pauseTimer();
-            }
-        }
-
-        function pauseTimer() {
-            clearInterval(timer);
-            isPaused = true;
-            startPauseButton.textContent = 'Start';
-            skipButton.disabled = true;
-        }
-
-        function resetTimer() {
-            const confirmation = confirm("Are you sure you want to reset the timer? This will clear the current session data.");
-            if (confirmation) {
                 clearInterval(timer);
-                isPaused = true;
-                isWorking = true;
-                workTime = parseInt(workTimeInput.value) * 60;
-                breakTime = parseInt(breakTimeInput.value) * 60;
-                longBreakTime = parseInt(longBreakTimeInput.value) * 60;
-                currentSessionCount = 1;
-                completedSessions = 0;
-                updateSessionInfo();
-                updateStatus();
                 startPauseButton.textContent = 'Start';
-                skipButton.disabled = true;
-                resetButton.disabled = true;
-                updateTimer();
+                isPaused = true;
             }
+        }
+
+        function completeSession() {
+            clearInterval(timer);
+            if (isWorking) {
+                completedSessions++;
+                currentSessionCount++;
+                if (completedSessions === goalSessions) {
+                    easterEgg.style.display = 'block';
+                    startPauseButton.disabled = true;
+                    skipButton.disabled = true;
+                    return;
+                }
+            }
+            isWorking = !isWorking;
+            resetTimers();
+            updateTimer();
+            toggleTimer();
         }
 
         function skipSession() {
-            clearInterval(timer);
-            if (isWorking) {
-                isWorking = false;
-                completedSessions++;
-                updateSessionInfo();
-                updateStatus();
-                alert("Skipping to break time!");
-            } else {
-                isWorking = true;
-                currentSessionCount++;
-                updateSessionInfo();
-                updateStatus();
-                alert(currentSessionCount % longBreakInterval === 0 ? "Skipping to work after long break!" : "Skipping to work time!");
-                resetTimes();
-            }
-            updateTimer();
-            startTimer(); // Automatically start the next session
+            completeSession();
         }
 
-        function openSettings() {
-            timerScreenDiv.style.display = 'none';
-            settingsDiv.style.display = 'block';
-        }
-
-        function applySettings() {
-            const newWorkTime = parseInt(workTimeInput.value);
-            const newBreakTime = parseInt(breakTimeInput.value);
-            const newLongBreakTime = parseInt(longBreakTimeInput.value);
-            const newLongBreakInterval = parseInt(longBreakIntervalInput.value);
-            const newGoalSessions = parseInt(goalSessionsInput.value);
-
-            if (isNaN(newWorkTime) || newWorkTime <= 0 || isNaN(newBreakTime) || newBreakTime <= 0 || isNaN(newLongBreakTime) || newLongBreakTime <= 0 || isNaN(newLongBreakInterval) || newLongBreakInterval <= 0 || isNaN(newGoalSessions) || newGoalSessions <= 0) {
-                alert("Please enter valid values!");
-                return;
-            }
-
-            workTime = newWorkTime * 60;
-            breakTime = newBreakTime * 60;
-            longBreakTime = newLongBreakTime * 60;
-            longBreakInterval = newLongBreakInterval;
-            goalSessions = newGoalSessions;
-            saveSettings();
-            resetTimer();
-            backToTimerScreen();
-        }
-
-        function backToTimerScreen() {
-            settingsDiv.style.display = 'none';
-            timerScreenDiv.style.display = 'block';
-        }
-
-        function resetTimes() {
-            // Only resetting the timers based on user input
+        function resetTimers() {
             workTime = parseInt(workTimeInput.value) * 60;
             breakTime = parseInt(breakTimeInput.value) * 60;
             longBreakTime = parseInt(longBreakTimeInput.value) * 60;
         }
 
-        // Prevent browser refresh without confirmation
-        window.addEventListener('beforeunload', (event) => {
-            if (!isPaused) {
-                const confirmationMessage = 'You have unsaved changes. Are you sure you want to leave?';
-                event.returnValue = confirmationMessage;
-                return confirmationMessage;
-            }
+        startPauseButton.addEventListener('click', toggleTimer);
+        skipButton.addEventListener('click', skipSession);
+        openSettingsButton.addEventListener('click', () => {
+            timerScreenDiv.style.display = 'none';
+            settingsDiv.style.display = 'block';
+        });
+        applySettingsButton.addEventListener('click', () => {
+            saveSettings();
+            loadSettings();
+            resetTimers();
+            updateTimer();
+            settingsDiv.style.display = 'none';
+            timerScreenDiv.style.display = 'block';
+        });
+        backToTimerButton.addEventListener('click', () => {
+            settingsDiv.style.display = 'none';
+            timerScreenDiv.style.display = 'block';
         });
 
-        // Initialize settings
+        // Load settings when the page loads
         loadSettings();
-
-        startPauseButton.addEventListener('click', startTimer);
-        resetButton.addEventListener('click', resetTimer);
-        skipButton.addEventListener('click', skipSession);
-        openSettingsButton.addEventListener('click', openSettings);
-        applySettingsButton.addEventListener('click', applySettings);
-        backToTimerButton.addEventListener('click', backToTimerScreen);
-
         updateTimer();
-        updateSessionInfo();
-        updateStatus();
     </script>
 </body>
 </html>
